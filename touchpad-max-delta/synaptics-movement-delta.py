@@ -40,11 +40,11 @@ def main(argv):
                 print("%d deltas, average %.2f, max %.2f, total distance %.2f in mm" %
                         (len(vdeltas), mean(vdeltas), max(vdeltas), sum(vdeltas)))
 
-                xdeltas = [ x/xres for (x, y) in deltas]
-                ydeltas = [ y/yres for (x, y) in deltas]
-                print("... x: average %.2f, max %.2f, total distance %.2f" %
+                xdeltas = [abs(x/xres) for (x, y) in deltas]
+                ydeltas = [abs(y/yres) for (x, y) in deltas]
+                print("... x: average %.2fmm, max %.2fmm, total distance %.2fmm" %
                         (mean(xdeltas), max(xdeltas), sum(xdeltas)))
-                print("... y: average %.2f, max %.2f, total distance %.2f" %
+                print("... y: average %.2fmm, max %.2fmm, total distance %.2fmm" %
                         (mean(ydeltas), max(ydeltas), sum(ydeltas)))
                 max_delta[0] = max(max_delta[0], max(vdeltas))
                 max_delta[1] = max(max_delta[1], max(xdeltas))
