@@ -25,8 +25,8 @@ def main(argv):
     width = d.get_abs_maximum("ABS_MT_POSITION_X") - d.get_abs_minimum("ABS_MT_POSITION_X")
     height = d.get_abs_maximum("ABS_MT_POSITION_Y") - d.get_abs_minimum("ABS_MT_POSITION_Y")
     diag = veclen(width, height)
-    xres = d.get_abs_resolution("ABS_MT_POSITION_X")
-    yres = d.get_abs_resolution("ABS_MT_POSITION_Y")
+    xres = d.get_abs_resolution("ABS_MT_POSITION_X") * 1.0
+    yres = d.get_abs_resolution("ABS_MT_POSITION_Y") * 1.0
     print "Touchpad dimensions: %dx%dmm" % (width/xres, height/yres)
     print "Touchpad diagonal: %.2f (0.25 == %.2f)" % (diag, 0.25 * diag)
 
@@ -66,9 +66,9 @@ def main(argv):
                 deltas.append((dx, dy))
             dx, dy = 0, 0
 
-    print("Maximum recorded delta: %dmm" % (max_delta[0]))
-    print("... x: %dmm" % max_delta[1])
-    print("... y: %dmm" % max_delta[2])
+    print("Maximum recorded delta: %.2fmm" % (max_delta[0]))
+    print("... x: %.2fmm" % max_delta[1])
+    print("... y: %.2fmm" % max_delta[2])
     return
 
 if __name__ == "__main__":
