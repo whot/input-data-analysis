@@ -16,6 +16,8 @@ def main(argv):
     tracking_ids = [-1, -1]
     distances = []
     mm = []
+    horiz = []
+    vert = []
 
     d = evemu.Device(argv[1], create=False)
     width = d.get_abs_maximum("ABS_MT_POSITION_X") - d.get_abs_minimum("ABS_MT_POSITION_X")
@@ -42,9 +44,14 @@ def main(argv):
                 dist = math.hypot(slots[0][0]/xres - slots[1][0]/xres,
                                   slots[0][1]/yres - slots[1][1]/yres)
                 mm.append(dist)
+                horiz.append(abs(slots[0][0]/xres - slots[1][0]/xres));
+                vert.append(abs(slots[0][1]/yres - slots[1][1]/yres));
 
     print "Max distance: %dmm, %d units" % (max(mm), max(distances))
     print "Min distance %dmm, %d units" % (min(mm), min(distances))
+
+    print "Max distance: %dmm horiz %dmm vert" % (max(horiz), max(vert))
+    print "Min distance %dmm horiz, %dmm vert" % (min(horiz), min(vert))
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
