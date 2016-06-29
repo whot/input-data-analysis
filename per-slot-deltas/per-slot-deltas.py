@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8
 #
 # Measures the relative motion between touch events (based on slots)
 
@@ -37,21 +38,25 @@ def main(argv):
 
     d = evemu.Device(args.path[0], create=False)
     nslots = d.get_abs_maximum("ABS_MT_SLOT") + 1
-    slots = [Slot() for _ in range(0, nslots)]
     print("Tracking %d slots" % nslots)
+    if nslots > 10:
+        nslots = 10
+        print("Capping at %d slots" % nslots)
 
-    marker_begin_slot = "   +++    | "
-    marker_end_slot =   "   ---    | "
-    marker_empty_slot = "********* | "
-    marker_no_data =    "          | "
+    slots = [Slot() for _ in range(0, nslots)]
+
+    marker_begin_slot = "   ++++++    | "
+    marker_end_slot =   "   ------    | "
+    marker_empty_slot = " *********** | "
+    marker_no_data =    "             | "
 
     if args.use_mm:
         xres = 1.0 * d.get_abs_resolution("ABS_MT_POSITION_X")
         yres = 1.0 * d.get_abs_resolution("ABS_MT_POSITION_Y")
-        marker_empty_slot = "*********** | "
-        marker_no_data =    "            | "
-        marker_begin_slot = "    +++     | "
-        marker_end_slot =   "    ---     | "
+        marker_empty_slot = " ************* | "
+        marker_no_data =    "               | "
+        marker_begin_slot = "    ++++++     | "
+        marker_end_slot =   "    ------     | "
 
     slot = 0
     for e in d.events():
@@ -90,12 +95,27 @@ def main(argv):
                 elif not sl.dirty:
                     print(marker_no_data, end='')
                 else:
+                    if sl.dx != 0 and sl.dy != 0:
+                        t = math.atan2(sl.dx, sl.dy)
+                        t += math.pi # in [0, 2pi] range now
+
+                        if t == 0:
+                            t = 0.01;
+                        else:
+                            t = t * 180.0 / math.pi
+
+                        directions = [ '↖↑', '↖←', '↙←', '↙↓', '↓↘', '→↘', '→↗', '↑↗']
+                        direction = "{:3.0f}".format(t)
+                        direction = directions[int(t/45)]
+                    else:
+                        direction = '..'
+
                     if args.use_mm:
                         sl.dx /= xres
                         sl.dy /= yres
-                        print("{:+3.2f}/{:+03.2f} | ".format(sl.dx, sl.dy), end='')
+                        print("{} {:+3.2f}/{:+03.2f} | ".format(direction, sl.dx, sl.dy), end='')
                     else:
-                        print("{:4d}/{:4d} | ".format(sl.dx, sl.dy), end='')
+                        print("{} {:4d}/{:4d} | ".format(direction, sl.dx, sl.dy), end='')
                 if sl.state == SlotState.BEGIN:
                     sl.state = SlotState.UPDATE
                 elif sl.state == SlotState.END:
