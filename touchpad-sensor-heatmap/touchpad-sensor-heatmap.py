@@ -49,16 +49,26 @@ def main(argv):
     h = ymax - ymin
     stride = w
 
-    imgdata = [0] * (stride * (h + 1))
+    xs = [x for (x, y) in locations.keys()]
+    ys = [y for (x, y) in locations.keys()]
+    xs.sort()
+    ys.sort()
 
-    for (x, y) in locations.keys():
-        px, py = x - xmin, y - ymin
-        for px in range(0, w):
-            imgdata[py * stride + px] = 255
+    xs = set(range(xmin, xmax)) - set(xs)
+    ys = set(range(ymin, ymax)) - set(ys)
 
-        px, py = x - xmin, y - ymin
+    # xs and ys contain all x/y coordinates that were never reached anywhere
+    imgdata = [255] * (stride * (h + 1))
+
+    for x in xs:
+        px = x - xmin
         for py in range(0, h):
-            imgdata[py * stride + px] = 255
+            imgdata[py * stride + px] = 0
+
+    for y in ys:
+        py = y - ymin
+        for px in range(0, w):
+            imgdata[py * stride + px] = 0
 
     im = Image.new('L', (w, h + 1))
     im.putdata(imgdata)
