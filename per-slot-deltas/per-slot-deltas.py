@@ -32,6 +32,7 @@ def main(argv):
 
     parser = argparse.ArgumentParser(description="Measure delta between event frames for each slot")
     parser.add_argument("--use-mm", action='store_true', help="Use mm instead of device deltas")
+    parser.add_argument("--use-st", action='store_true', help="Use ABS_X/ABS_Y instead of device deltas")
     parser.add_argument("path", metavar="recording",
                         nargs=1, help="Path to evemu recording")
     args = parser.parse_args()
@@ -58,32 +59,67 @@ def main(argv):
         marker_begin_slot = "    ++++++     | "
         marker_end_slot =   "    ------     | "
 
+    if args.use_st:
+        print("Warning: slot coordinates on FINGER/DOUBLETAP change may be incorrect")
+
     slot = 0
     for e in d.events():
         s = slots[slot]
-        if e.matches("EV_ABS", "ABS_MT_SLOT"):
-            slot = e.value
-            s = slots[slot]
-            s.dirty = True
-        elif e.matches("EV_ABS", "ABS_MT_TRACKING_ID"):
-            if e.value == -1:
-                s.state = SlotState.END
-            else:
-                s.state = SlotState.BEGIN
-                s.dx = 0
-                s.dy = 0
-            s.dirty = True
-        elif e.matches("EV_ABS", "ABS_MT_POSITION_X"):
-            if s.state == SlotState.UPDATE:
-                s.dx = e.value - s.x
-            s.x = e.value
-            s.dirty = True
-        elif e.matches("EV_ABS", "ABS_MT_POSITION_Y"):
-            if s.state == SlotState.UPDATE:
-                s.dy = e.value - s.y
-            s.y = e.value
-            s.dirty = True
-        elif e.matches("EV_SYN", "SYN_REPORT"):
+        if args.use_st:
+            # Note: this relies on the EV_KEY events to come in before the
+            # x/y events, otherwise the last/first event in each slot will
+            # be wrong.
+            if e.matches("EV_KEY", "BTN_TOOL_FINGER"):
+                slot = 0
+                s = slots[slot]
+                s.dirty = True
+                if e.value:
+                    s.state = SlotState.BEGIN
+                else:
+                    s.state = SlotState.END
+            elif e.matches("EV_KEY", "BTN_TOOL_DOUBLETAP"):
+                slot = 1
+                s = slots[slot]
+                s.dirty = True
+                if e.value:
+                    s.state = SlotState.BEGIN
+                else:
+                    s.state = SlotState.END
+            elif e.matches("EV_ABS", "ABS_X"):
+                if s.state == SlotState.UPDATE:
+                    s.dx = e.value - s.x
+                s.x = e.value
+                s.dirty = True
+            elif e.matches("EV_ABS", "ABS_Y"):
+                if s.state == SlotState.UPDATE:
+                    s.dy = e.value - s.y
+                s.y = e.value
+                s.dirty = True
+        else:
+            if e.matches("EV_ABS", "ABS_MT_SLOT"):
+                slot = e.value
+                s = slots[slot]
+                s.dirty = True
+            elif e.matches("EV_ABS", "ABS_MT_TRACKING_ID"):
+                if e.value == -1:
+                    s.state = SlotState.END
+                else:
+                    s.state = SlotState.BEGIN
+                    s.dx = 0
+                    s.dy = 0
+                s.dirty = True
+            elif e.matches("EV_ABS", "ABS_MT_POSITION_X"):
+                if s.state == SlotState.UPDATE:
+                    s.dx = e.value - s.x
+                s.x = e.value
+                s.dirty = True
+            elif e.matches("EV_ABS", "ABS_MT_POSITION_Y"):
+                if s.state == SlotState.UPDATE:
+                    s.dy = e.value - s.y
+                s.y = e.value
+                s.dirty = True
+
+        if e.matches("EV_SYN", "SYN_REPORT"):
             print("{:2d}.{:06d}: ".format(e.sec, e.usec), end='')
             for sl in slots:
                 if sl.state == SlotState.NONE:
