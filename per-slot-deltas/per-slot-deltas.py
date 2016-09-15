@@ -33,6 +33,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description="Measure delta between event frames for each slot")
     parser.add_argument("--use-mm", action='store_true', help="Use mm instead of device deltas")
     parser.add_argument("--use-st", action='store_true', help="Use ABS_X/ABS_Y instead of device deltas")
+    parser.add_argument("--use-absolute", action='store_true', help="Use absolute coordinates, not deltas")
     parser.add_argument("path", metavar="recording",
                         nargs=1, help="Path to evemu recording")
     args = parser.parse_args()
@@ -150,6 +151,8 @@ def main(argv):
                         sl.dx /= xres
                         sl.dy /= yres
                         print("{} {:+3.2f}/{:+03.2f} | ".format(direction, sl.dx, sl.dy), end='')
+                    elif args.use_absolute:
+                        print("{} {:4d}/{:4d} | ".format(direction, sl.x, sl.y), end='')
                     else:
                         print("{} {:4d}/{:4d} | ".format(direction, sl.dx, sl.dy), end='')
                 if sl.state == SlotState.BEGIN:
