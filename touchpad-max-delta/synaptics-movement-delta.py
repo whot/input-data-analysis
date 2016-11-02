@@ -33,12 +33,19 @@ def main(argv):
     diag = veclen(width/xres, height/yres)
     print "Touchpad diagonal: %.2fmm (0.25 == %.2fmm)" % (diag, 0.25 * diag)
 
+    slot = 0
+
     for e in d.events():
+        if e.matches("EV_ABS", "ABS_MT_SLOT"):
+            slot = e.value
+        elif slot != 0:
+            continue
+
         if e.matches("EV_ABS", "ABS_MT_TRACKING_ID"):
             if e.value == -1 and len(deltas) > 0:
                 vdeltas = [ veclen(x/xres, y/xres) for (x, y) in deltas]
-                print("%d deltas, average %.2f, max %.2f, total distance %.2f in mm" %
-                        (len(vdeltas), mean(vdeltas), max(vdeltas), sum(vdeltas)))
+                print("%d.%d: %d deltas, average %.2f, max %.2f, total distance %.2f in mm" %
+                        (e.sec, e.usec, len(vdeltas), mean(vdeltas), max(vdeltas), sum(vdeltas)))
 
                 xdeltas = [abs(x/xres) for (x, y) in deltas]
                 ydeltas = [abs(y/yres) for (x, y) in deltas]
