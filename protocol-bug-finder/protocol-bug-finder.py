@@ -31,9 +31,7 @@ class TestAbsoluteDevice(TestEvdevDevice):
     def setUp(self):
         super(TestAbsoluteDevice, self).setUp()
 
-        required = ["ABS_X", "ABS_Y",
-                    "ABS_MT_POSITION_X",
-                    "ABS_MT_POSITION_Y"]
+        required = ["ABS_X", "ABS_Y"]
         is_abs = False
 
         for r in required:
@@ -51,6 +49,41 @@ class TestAbsoluteDevice(TestEvdevDevice):
     def test_has_both_abs_x_and_y(self):
         self.assertTrue(self.d.has_event("EV_ABS", "ABS_X"))
         self.assertTrue(self.d.has_event("EV_ABS", "ABS_Y"))
+
+    def test_does_not_exceed_axis_ranges(self):
+        xmin = self.d.get_abs_minimum("ABS_X")
+        xmax = self.d.get_abs_maximum("ABS_X")
+        ymin = self.d.get_abs_minimum("ABS_Y")
+        ymax = self.d.get_abs_maximum("ABS_Y")
+
+        for e in self.d.events():
+            if e.matches("EV_ABS", "ABS_X"):
+                self.assertGreaterEqual(e.value, xmin)
+                self.assertLessEqual(e.value, xmax)
+            elif e.matches("EV_ABS", "ABS_Y"):
+                self.assertGreaterEqual(e.value, ymin)
+                self.assertLessEqual(e.value, ymax)
+
+    def test_has_resolution(self):
+        axes = ["ABS_X", "ABS_Y"]
+        for a in axes:
+            if self.d.has_event("EV_ABS", a):
+                self.assertGreater(self.d.get_abs_resolution(a), 0)
+
+class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
+    def setUp(self):
+        super(TestAbsoluteMultitouchDevice, self).setUp()
+
+        required = ["ABS_MT_POSITION_X", "ABS_MT_POSITION_Y"]
+        is_abs = False
+
+        for r in required:
+            if self.d.has_event("EV_ABS", r):
+                is_abs = True
+                break
+
+        if not is_abs:
+            raise unittest.SkipTest
 
     def test_has_both_abs_mt_x_and_y(self):
         if self.d.has_event("EV_ABS", "ABS_MT_POSITION_X") or \
@@ -78,36 +111,10 @@ class TestAbsoluteDevice(TestEvdevDevice):
         mtmax = self.d.get_abs_maximum("ABS_MT_POSITION_Y")
         self.assertEqual(smax, mtmax);
 
-    def test_does_not_exceed_axis_ranges(self):
-        xmin = self.d.get_abs_minimum("ABS_X")
-        xmax = self.d.get_abs_maximum("ABS_X")
-        ymin = self.d.get_abs_minimum("ABS_Y")
-        ymax = self.d.get_abs_maximum("ABS_Y")
-
-        for e in self.d.events():
-            if e.matches("EV_ABS", "ABS_X"):
-                self.assertGreaterEqual(e.value, xmin)
-                self.assertLessEqual(e.value, xmax)
-            elif e.matches("EV_ABS", "ABS_Y"):
-                self.assertGreaterEqual(e.value, ymin)
-                self.assertLessEqual(e.value, ymax)
-
     def test_is_not_fake_multitouch_device(self):
-        if not self.d.has_event("EV_ABS", "ABS_MT_SLOT"):
-            self.skipTest("No slots anyway")
-
         self.assertFalse(self.d.has_event("EV_ABS", 0x2e))
 
-    def test_has_resolution(self):
-        axes = ["ABS_X", "ABS_Y", "ABS_MT_POSITION_X", "ABS_MT_POSITION_Y"]
-        for a in axes:
-            if self.d.has_event("EV_ABS", a):
-                self.assertGreater(self.d.get_abs_resolution(a), 0)
-
     def test_has_equal_resolutions_for_mt(self):
-        if not self.d.has_event("EV_ABS", "ABS_MT_POSITION_X"):
-            self.skipTest("No multitouch axes")
-
         res = self.d.get_abs_resolution("ABS_X")
         res_mt = self.d.get_abs_resolution("ABS_MT_POSITION_X")
         self.assertEqual(res, res_mt)
@@ -117,18 +124,12 @@ class TestAbsoluteDevice(TestEvdevDevice):
         self.assertEqual(res, res_mt)
 
     def test_has_min_max_slots(self):
-        if not self.d.has_event("EV_ABS", "ABS_MT_SLOT"):
-            self.skipTest("No multitouch slots")
-
         smin = self.d.get_abs_minimum("ABS_MT_SLOT")
         smax = self.d.get_abs_maximum("ABS_MT_SLOT")
         self.assertEqual(smin, 0)
         self.assertGreaterEqual(smax, 1)
 
     def test_has_btn_tool_footap_for_each_slot(self):
-        if not self.d.has_event("EV_ABS", "ABS_MT_SLOT"):
-            self.skipTest("No multitouch slots")
-
         slots = self.d.get_abs_maximum("ABS_MT_SLOT")
         if slots >= 5:
             self.assertTrue(self.d.has_event("EV_KEY", "BTN_TOOL_QUINTTAP"))
@@ -140,6 +141,12 @@ class TestAbsoluteDevice(TestEvdevDevice):
             self.assertTrue(self.d.has_event("EV_KEY", "BTN_TOOL_DOUBLETAP"))
         if slots >= 1:
             self.assertTrue(self.d.has_event("EV_KEY", "BTN_TOUCH"))
+
+    def test_has_resolution(self):
+        axes = ["ABS_X", "ABS_Y", "ABS_MT_POSITION_X", "ABS_MT_POSITION_Y"]
+        for a in axes:
+            if self.d.has_event("EV_ABS", a):
+                self.assertGreater(self.d.get_abs_resolution(a), 0)
 
 class TestTouchpad(TestAbsoluteDevice):
     def setUp(self):
