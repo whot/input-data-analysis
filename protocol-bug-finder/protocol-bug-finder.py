@@ -1,6 +1,8 @@
 #!/usr/bin/python
 #
-# Input is an evemu.
+# Input is an evemu recording, first argument must be the filename for the
+# evemu recording. Other arguments are passed to python's unittest.
+# 
 
 from __future__ import print_function
 
