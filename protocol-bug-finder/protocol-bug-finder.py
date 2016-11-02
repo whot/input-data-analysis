@@ -23,7 +23,7 @@ class TestEvdevDevice(unittest.TestCase):
     def setUp(self):
         self.d = evemu.Device(evemu_path, create=False)
 
-    def test_no_SYN_DROPPED(self):
+    def test_evdev_no_SYN_DROPPED(self):
         for e in self.d.events():
             self.assertFalse(e.matches("EV_SYN", "SYN_DROPPED"))
 
@@ -42,15 +42,15 @@ class TestAbsoluteDevice(TestEvdevDevice):
         if not is_abs:
             raise unittest.SkipTest
 
-    def test_has_single_emulation(self):
+    def test_abs_has_single_emulation(self):
         self.assertTrue(self.d.has_event("EV_ABS", "ABS_X"))
         self.assertTrue(self.d.has_event("EV_ABS", "ABS_Y"))
 
-    def test_has_both_abs_x_and_y(self):
+    def test_abs_has_both_abs_x_and_y(self):
         self.assertTrue(self.d.has_event("EV_ABS", "ABS_X"))
         self.assertTrue(self.d.has_event("EV_ABS", "ABS_Y"))
 
-    def test_does_not_exceed_axis_ranges(self):
+    def test_abs_does_not_exceed_axis_ranges(self):
         xmin = self.d.get_abs_minimum("ABS_X")
         xmax = self.d.get_abs_maximum("ABS_X")
         ymin = self.d.get_abs_minimum("ABS_Y")
@@ -64,7 +64,7 @@ class TestAbsoluteDevice(TestEvdevDevice):
                 self.assertGreaterEqual(e.value, ymin)
                 self.assertLessEqual(e.value, ymax)
 
-    def test_has_resolution(self):
+    def test_abs_has_resolution(self):
         axes = ["ABS_X", "ABS_Y"]
         for a in axes:
             if self.d.has_event("EV_ABS", a):
@@ -85,7 +85,7 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
         if not is_abs:
             raise unittest.SkipTest
 
-    def test_has_both_abs_mt_x_and_y(self):
+    def test_mt_has_both_abs_mt_x_and_y(self):
         if self.d.has_event("EV_ABS", "ABS_MT_POSITION_X") or \
            self.d.has_event("EV_ABS", "ABS_MT_POSITION_Y"):
            self.assertTrue(self.d.has_event("EV_ABS", "ABS_MT_POSITION_X"))
@@ -93,7 +93,7 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
         else:
            self.skipTest("No multitouch axes")
 
-    def test_mt_axis_ranges_equal_to_st(self):
+    def test_mt_mt_axis_ranges_equal_to_st(self):
         if not self.d.has_event("EV_ABS", "ABS_MT_POSITION_X") or \
            not self.d.has_event("EV_ABS", "ABS_MT_POSITION_Y"):
                self.skipTest("No multitouch axes")
@@ -111,10 +111,10 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
         mtmax = self.d.get_abs_maximum("ABS_MT_POSITION_Y")
         self.assertEqual(smax, mtmax);
 
-    def test_is_not_fake_multitouch_device(self):
+    def test_mt_is_not_fake_multitouch_device(self):
         self.assertFalse(self.d.has_event("EV_ABS", 0x2e))
 
-    def test_has_equal_resolutions_for_mt(self):
+    def test_mt_has_equal_resolutions_for_mt(self):
         res = self.d.get_abs_resolution("ABS_X")
         res_mt = self.d.get_abs_resolution("ABS_MT_POSITION_X")
         self.assertEqual(res, res_mt)
@@ -123,13 +123,13 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
         res_mt = self.d.get_abs_resolution("ABS_MT_POSITION_Y")
         self.assertEqual(res, res_mt)
 
-    def test_has_min_max_slots(self):
+    def test_mt_has_min_max_slots(self):
         smin = self.d.get_abs_minimum("ABS_MT_SLOT")
         smax = self.d.get_abs_maximum("ABS_MT_SLOT")
         self.assertEqual(smin, 0)
         self.assertGreaterEqual(smax, 1)
 
-    def test_has_btn_tool_footap_for_each_slot(self):
+    def test_mt_has_btn_tool_footap_for_each_slot(self):
         slots = self.d.get_abs_maximum("ABS_MT_SLOT")
         if slots >= 5:
             self.assertTrue(self.d.has_event("EV_KEY", "BTN_TOOL_QUINTTAP"))
@@ -142,13 +142,13 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
         if slots >= 1:
             self.assertTrue(self.d.has_event("EV_KEY", "BTN_TOUCH"))
 
-    def test_has_resolution(self):
+    def test_mt_has_resolution(self):
         axes = ["ABS_X", "ABS_Y", "ABS_MT_POSITION_X", "ABS_MT_POSITION_Y"]
         for a in axes:
             if self.d.has_event("EV_ABS", a):
                 self.assertGreater(self.d.get_abs_resolution(a), 0)
 
-    def test_events_btn_tool_set_for_each_slot(self):
+    def test_mt_events_btn_tool_set_for_each_slot(self):
         nslots = self.d.get_abs_maximum("ABS_MT_SLOT")
         slots = [ False ] * nslots
         tools = [ False ] * 5
@@ -187,7 +187,7 @@ class TestTouchpad(TestAbsoluteDevice):
                 self.d.has_event("EV_KEY", "BTN_TOOL_PEN"):
             raise unittest.SkipTest
 
-    def test_is_clickpad(self):
+    def test_touchpad_is_clickpad(self):
         if self.d.has_event("EV_KEY", "BTN_LEFT") and \
                 not self.d.has_event("EV_KEY", "BTN_RIGHT"):
             self.assertTrue(self.d.has_prop("INPUT_PROP_BUTTONPAD"))
@@ -196,10 +196,10 @@ class TestTouchpad(TestAbsoluteDevice):
                             not self.d.has_event("EV_KEY", "BTN_MIDDLE") and
                             not self.d.has_event("EV_KEY", "BTN_RIGHT"))
 
-    def test_no_input_prop_direct(self):
+    def test_touchpad_no_input_prop_direct(self):
         self.assertFalse(self.d.has_prop("INPUT_PROP_DIRECT"))
 
-    def test_device_has_no_rel_axes(self):
+    def test_touchpad_device_has_no_rel_axes(self):
         for i in range(0, evemu.event_get_value("EV_REL", "REL_MAX")):
             self.assertFalse(self.d.has_event("EV_REL", i))
 
@@ -210,19 +210,19 @@ class TestTablet(TestAbsoluteDevice):
         if not self.d.has_event("EV_KEY", "BTN_TOOL_PEN"):
             raise unittest.SkipTest
 
-    def test_has_input_prop_direct(self):
+    def test_tablet_has_input_prop_direct(self):
         self.assertTrue(self.d.has_prop("INPUT_PROP_DIRECT"))
 
-    def test_has_btn_touch(self):
+    def test_tablet_has_btn_touch(self):
         self.assertTrue(self.d.has_event("EV_KEY", "BTN_TOUCH"))
 
-    def test_has_stylus_button(self):
+    def test_tablet_has_stylus_button(self):
         self.assertTrue(self.d.has_event("EV_KEY", "BTN_STYLUS"))
 
-    def test_has_stylus_button2(self):
+    def test_tablet_has_stylus_button2(self):
         self.assertTrue(self.d.has_event("EV_KEY", "BTN_STYLUS2"))
 
-    def test_events_btn_touch(self):
+    def test_tablet_events_btn_touch(self):
         count_touch_down = 0
         count_touch_up = 0
         for e in self.d.events():
@@ -236,7 +236,7 @@ class TestTablet(TestAbsoluteDevice):
         self.assertGreater(count_touch_down, 0)
         self.assertGreater(count_touch_up, 0)
 
-    def test_events_btn_touch_balanced(self):
+    def test_tablet_events_btn_touch_balanced(self):
         count_touch_down = 0
         count_touch_up = 0
         for e in self.d.events():
@@ -249,7 +249,7 @@ class TestTablet(TestAbsoluteDevice):
                     count_touch_down += 1
         self.assertEqual(count_touch_down, count_touch_down)
 
-    def test_events_btn_tool_pen(self):
+    def test_tablet_events_btn_tool_pen(self):
         count_pen_down = 0
         count_pen_up = 0
         for e in self.d.events():
@@ -263,7 +263,7 @@ class TestTablet(TestAbsoluteDevice):
         self.assertGreater(count_pen_down, 0)
         self.assertGreater(count_pen_up, 0)
 
-    def test_events_btn_tool_pen_balanced(self):
+    def test_tablet_events_btn_tool_pen_balanced(self):
         count_pen_down = 0
         count_pen_up = 0
         for e in self.d.events():
@@ -278,7 +278,7 @@ class TestTablet(TestAbsoluteDevice):
         self.assertGreater(count_pen_up, 0)
         self.assertEqual(count_pen_down, count_pen_down)
 
-    def test_events_btn_tool_pen_before_btn_tool_touch(self):
+    def test_tablet_events_btn_tool_pen_before_btn_tool_touch(self):
         pen_state = 0
         touch_state = 0
         for e in self.d.events():
@@ -289,7 +289,7 @@ class TestTablet(TestAbsoluteDevice):
             elif e.matches("EV_SYN", "SYN_REPORT"):
                 self.assertGreaterEqual(pen_state, touch_state)
 
-    def test_events_btn_tool_pen_before_btn_stylus(self):
+    def test_tablet_events_btn_tool_pen_before_btn_stylus(self):
         have_btn_stylus = False
         pen_state = 0
         stylus_state = 0
@@ -324,12 +324,12 @@ class TestRelativeDevice(TestEvdevDevice):
         if not is_rel:
             raise unittest.SkipTest
 
-    def test_no_touchpad_in_name(self):
+    def test_rel_no_touchpad_in_name(self):
         name = self.d.name
         self.assertEqual(name.lower().find("touchpad"), -1)
 
 class TestMouse(TestRelativeDevice):
-    def test_lmr_buttons(self):
+    def test_mouse_has_lmr_buttons(self):
         self.assertTrue(self.d.has_event("EV_KEY", "BTN_LEFT"))
         self.assertTrue(self.d.has_event("EV_KEY", "BTN_RIGHT"))
         self.assertTrue(self.d.has_event("EV_KEY", "BTN_MIDDLE"))
