@@ -60,6 +60,38 @@ class TestAbsoluteDevice(TestEvdevDevice):
         else:
            self.skipTest("No multitouch axes")
 
+    def test_mt_axis_ranges_equal_to_st(self):
+        if not self.d.has_event("EV_ABS", "ABS_MT_POSITION_X") or \
+           not self.d.has_event("EV_ABS", "ABS_MT_POSITION_Y"):
+               self.skipTest("No multitouch axes")
+
+        smin = self.d.get_abs_minimum("ABS_X")
+        mtmin = self.d.get_abs_minimum("ABS_MT_POSITION_X")
+        self.assertEqual(smin, mtmin);
+        smax = self.d.get_abs_maximum("ABS_X")
+        mtmax = self.d.get_abs_maximum("ABS_MT_POSITION_X")
+        self.assertEqual(smax, mtmax);
+        smin = self.d.get_abs_minimum("ABS_Y")
+        mtmin = self.d.get_abs_minimum("ABS_MT_POSITION_Y")
+        self.assertEqual(smin, mtmin);
+        smax = self.d.get_abs_maximum("ABS_Y")
+        mtmax = self.d.get_abs_maximum("ABS_MT_POSITION_Y")
+        self.assertEqual(smax, mtmax);
+
+    def test_does_not_exceed_axis_ranges(self):
+        xmin = self.d.get_abs_minimum("ABS_X")
+        xmax = self.d.get_abs_maximum("ABS_X")
+        ymin = self.d.get_abs_minimum("ABS_Y")
+        ymax = self.d.get_abs_maximum("ABS_Y")
+
+        for e in self.d.events():
+            if e.matches("EV_ABS", "ABS_X"):
+                self.assertGreaterEqual(e.value, xmin)
+                self.assertLessEqual(e.value, xmax)
+            elif e.matches("EV_ABS", "ABS_Y"):
+                self.assertGreaterEqual(e.value, ymin)
+                self.assertLessEqual(e.value, ymax)
+
     def test_is_not_fake_multitouch_device(self):
         if not self.d.has_event("EV_ABS", "ABS_MT_SLOT"):
             self.skipTest("No slots anyway")
