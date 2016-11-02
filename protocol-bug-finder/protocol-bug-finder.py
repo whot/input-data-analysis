@@ -148,6 +148,37 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
             if self.d.has_event("EV_ABS", a):
                 self.assertGreater(self.d.get_abs_resolution(a), 0)
 
+    def test_events_btn_tool_set_for_each_slot(self):
+        nslots = self.d.get_abs_maximum("ABS_MT_SLOT")
+        slots = [ False ] * nslots
+        tools = [ False ] * 5
+
+        slot = 0
+        for e in self.d.events():
+            if e.matches("EV_ABS", "ABS_MT_SLOT"):
+                slot = e.value
+            elif e.matches("EV_ABS", "ABS_MT_TRACKING_ID"):
+                # ABS_MT_SLOT always comes before tracking id so we don't
+                # need to wait for SYN_REPORT
+                slots[slot] = e.value != -1
+            elif e.matches("EV_KEY", "BTN_TOOL_FINGER"):
+                tools[0] = e.value == 1
+            elif e.matches("EV_KEY", "BTN_TOOL_DOUBLETAP"):
+                tools[1] = e.value == 1
+            elif e.matches("EV_KEY", "BTN_TOOL_TRIPLETAP"):
+                tools[2] = e.value == 1
+            elif e.matches("EV_KEY", "BTN_TOOL_QUADTAP"):
+                tools[3] = e.value == 1
+            elif e.matches("EV_KEY", "BTN_TOOL_QUINTTAP"):
+                tools[4] = e.value == 1
+            elif e.matches("EV_SYN", "SYN_REPORT"):
+                nactive_slots = slots.count(True)
+                try:
+                    nactive_tools = tools.index(True) + 1
+                    self.assertLessEqual(nactive_tools, nactive_tools)
+                except ValueError:
+                    pass
+
 class TestTouchpad(TestAbsoluteDevice):
     def setUp(self):
         super(TestTouchpad, self).setUp()
@@ -302,6 +333,28 @@ class TestMouse(TestRelativeDevice):
         self.assertTrue(self.d.has_event("EV_KEY", "BTN_LEFT"))
         self.assertTrue(self.d.has_event("EV_KEY", "BTN_RIGHT"))
         self.assertTrue(self.d.has_event("EV_KEY", "BTN_MIDDLE"))
+
+class TestButtonDevice(TestEvdevDevice):
+    def setUp(self):
+        super(TestButtonDevice, self).setUp()
+
+        required = range(0x100, 0x160)
+        has_btn = False
+
+        for r in required:
+            if self.d.has_event("EV_KEY", r):
+                has_btn = True
+                break
+
+        if not has_btn:
+            raise unittest.SkipTest
+
+    def test_button_is_never_value_2(self):
+        for e in self.d.events():
+            for code in range(0x100, 0x160):
+                if e.matches("EV_KEY", code):
+                    self.assertGreaterEqual(e.value, 0)
+                    self.assertLessEqual(e.value, 1)
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
