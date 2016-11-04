@@ -280,6 +280,35 @@ class TestTablet(TestAbsoluteDevice):
         self.assertGreater(count_pen_up, 0)
         self.assertEqual(count_pen_down, count_pen_down)
 
+    def test_tablet_events_btn_tool_rubber_balanced(self):
+        count_pen_down = 0
+        count_pen_up = 0
+        for e in self.d.events():
+            if e.matches("EV_KEY", "BTN_TOOL_RUBBER"):
+                self.assertGreaterEqual(e.value, 0)
+                self.assertLessEqual(e.value, 1)
+                if e.value == 0:
+                    count_pen_up += 1
+                else:
+                    count_pen_down += 1
+        self.assertGreater(count_pen_down, 0)
+        self.assertGreater(count_pen_up, 0)
+        self.assertEqual(count_pen_down, count_pen_down)
+
+    def test_tablet_events_btn_tool_pen_rubber_mutually_exclusive(self):
+        pen_state = False
+        rubber_state = False
+        for e in self.d.events():
+            if e.matches("EV_KEY", "BTN_TOOL_PEN"):
+                pen_state = e.value == 1
+            elif e.matches("EV_KEY", "BTN_TOOL_RUBBER"):
+                rubber_state = e.value == 1
+            elif e.matches("EV_SYN", "SYN_REPORT"):
+                if pen_state:
+                    self.assertFalse(rubber_state)
+                elif rubber_state:
+                    self.assertFalse(pen_state)
+
     def test_tablet_events_btn_tool_pen_or_rubber_before_btn_tool_touch(self):
         pen_state = 0
         touch_state = 0
