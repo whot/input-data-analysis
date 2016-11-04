@@ -309,7 +309,7 @@ class TestTablet(TestAbsoluteDevice):
                 self.assertGreaterEqual(pen_state, stylus_state)
                 self.assertGreaterEqual(pen_state, stylus2_state)
         if not have_btn_stylus:
-            self.SkipTest("No BTN_STYLUS/BTN_STYLUS2 event found")
+            self.skipTest("No BTN_STYLUS/BTN_STYLUS2 event found")
 
 class TestRelativeDevice(TestEvdevDevice):
     def setUp(self):
