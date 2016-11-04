@@ -280,11 +280,12 @@ class TestTablet(TestAbsoluteDevice):
         self.assertGreater(count_pen_up, 0)
         self.assertEqual(count_pen_down, count_pen_down)
 
-    def test_tablet_events_btn_tool_pen_before_btn_tool_touch(self):
+    def test_tablet_events_btn_tool_pen_or_rubber_before_btn_tool_touch(self):
         pen_state = 0
         touch_state = 0
         for e in self.d.events():
-            if e.matches("EV_KEY", "BTN_TOOL_PEN"):
+            if e.matches("EV_KEY", "BTN_TOOL_PEN") or \
+               e.matches("EV_KEY", "BTN_TOOL_RUBBER"):
                 pen_state = e.value
             elif e.matches("EV_KEY", "BTN_TOUCH"):
                 touch_state = e.value
