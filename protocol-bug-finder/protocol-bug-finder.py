@@ -181,6 +181,29 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
                 except ValueError:
                     pass
 
+    def test_btntool_state_not_set_twice(self):
+        state = [ 0 ] * 5
+        for e in self.d.events():
+            if e.type != evemu.event_get_value("EV_KEY"):
+                continue
+
+            if e.matches("EV_KEY", "BTN_TOOL_FINGER"):
+                index = 0
+            elif e.matches("EV_KEY", "BTN_TOOL_DOUBLETAP"):
+                index = 1
+            elif e.matches("EV_KEY", "BTN_TOOL_TRIPLETAP"):
+                index = 2
+            elif e.matches("EV_KEY", "BTN_TOOL_QUADTAP"):
+                index = 3
+            elif e.matches("EV_KEY", "BTN_TOOL_QUINTTAP"):
+                index = 4
+            else:
+                continue
+
+            expected = 1 - e.value
+            self.assertEquals(state[index], expected)
+            state[index] = e.value
+
 class TestTouchpad(TestAbsoluteDevice):
     def setUp(self):
         super(TestTouchpad, self).setUp()
