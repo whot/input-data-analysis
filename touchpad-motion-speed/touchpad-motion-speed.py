@@ -99,7 +99,7 @@ def main(argv):
 
     # divide into buckets for each 10mm/s increment
     increment = 10
-    nbuckets = int(maxvel/increment + 1
+    nbuckets = int(maxvel/increment) + 1
     buckets = [0] * nbuckets
     print("Starting with {} buckets".format(nbuckets))
     min_events = 5
