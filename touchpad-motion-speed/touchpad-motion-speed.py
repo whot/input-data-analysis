@@ -120,18 +120,17 @@ def parse_recordings_file(path):
 
     speed = increment
     total_percent = 0
-    datapoints = []
+    datapoints = {}
 
     for b in buckets:
         percent = 100.0 * b/nevents_new
         total_percent += percent
-        data = {
+        datapoints[speed] = {
             "speed" : speed,
             "nevents" : b,
             "percent" : percent,
             "total-percent" : total_percent,
         }
-        datapoints.append(data)
 
         #print(".. {}mm/s: {:5} events, {:.1f}% {:.1f}% total".format(speed, b, percent, total_percent))
         speed += increment
@@ -140,19 +139,83 @@ def parse_recordings_file(path):
 
 def print_one_dataset(data):
     """
-    data is a list of dict objects with the various bits attached
+    data is a dict with speed as the key and a dict with info for each speed
     """
 
-    print(tabulate(data, headers='keys'))
+    speeds = data.keys()
+    speeds.sort()
+    datapoints = [ data[key] for key in speeds ]
+
+    print(tabulate(datapoints, headers='keys'))
+
+
+def print_all_datasets(datasets):
+    """
+    data is a list of lists with dict objects with the various bits
+    attached. So the first recording data is data[0], etc.
+
+    The output we want is each individual set in a column, ready for gnuplot.
+    so for the speeds s0, s1, s2,... in recordings r1, r2, r3 the output is
+
+    r1s0 r2s0 r3s0
+    r1s1 r2s1 r3s1
+    r1s2 r2s2 r3s2
+    ...
+
+    """
+
+    longest_speed_list = datasets[0].keys()
+
+    for dataset in datasets[1:]:
+        speeds = dataset.keys()
+        if len(speeds) > longest_speed_list:
+            longest_speed_list = speeds
+
+    speeds = longest_speed_list
+    speeds.sort()
+
+    for speed in speeds:
+        print('{} "mm/s" "nevents:" '.format(speed), end="")
+        for dataset in datasets:
+            try:
+                data = dataset[speed]
+                print("{} ".format(data["nevents"]), end="")
+            except KeyError as e:
+                print("0 ", end="")
+
+        print('"percent:" ', end="")
+        for dataset in datasets:
+            try:
+                data = dataset[speed]
+                print("{} ".format(data["percent"]), end="")
+            except KeyError as e:
+                print("0 ", end="")
+
+        print('"total_percent:" ', end="")
+        for dataset in datasets:
+            try:
+                data = dataset[speed]
+                print("{} ".format(data["total-percent"]), end="")
+            except KeyError as e:
+                # If we don't get here by definition we must be at 100%
+                print("100 ", end="")
+
+        print("")
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Measure delta between event frames for each slot")
     parser.add_argument("path", metavar="recording",
-                        nargs=1, help="Path to evemu recording")
+                        nargs="*", help="Path to evemu recording")
     args = parser.parse_args()
 
-    data = parse_recordings_file(args.path[0]);
-    print_one_dataset(data)
+    data = []
+    for path in args.path:
+        data.append(parse_recordings_file(path))
+
+    if len(data) == 1:
+        print_one_dataset(data[0])
+    else:
+        print_all_datasets(data)
 
 if __name__ == "__main__":
     main(sys.argv)
