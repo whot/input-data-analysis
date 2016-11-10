@@ -9,6 +9,7 @@
 
 from __future__ import print_function
 
+from tabulate import *
 import evemu
 import sys
 import os
@@ -32,15 +33,10 @@ class Slot:
     time = 0
     dt = 0
 
-def main(argv):
-    parser = argparse.ArgumentParser(description="Measure delta between event frames for each slot")
-    parser.add_argument("path", metavar="recording",
-                        nargs=1, help="Path to evemu recording")
-    args = parser.parse_args()
-
+def parse_recordings_file(path):
     vels = []
 
-    d = evemu.Device(args.path[0], create=False)
+    d = evemu.Device(path, create=False)
     nslots = d.get_abs_maximum("ABS_MT_SLOT") + 1
     slots = [Slot() for _ in range(0, nslots)]
     xres = 1.0 * d.get_abs_resolution("ABS_MT_POSITION_X")
@@ -94,14 +90,14 @@ def main(argv):
 
     nevents = len(vels)
     maxvel = max(vels)
-    print("Number of data points: {}".format(nevents))
-    print("Highest velocity: {} mm/s".format(maxvel))
+    print("# Number of data points: {}".format(nevents))
+    print("# Highest velocity: {} mm/s".format(maxvel))
 
     # divide into buckets for each 10mm/s increment
     increment = 10
     nbuckets = int(maxvel/increment) + 1
     buckets = [0] * nbuckets
-    print("Starting with {} buckets".format(nbuckets))
+    print("# Starting with {} buckets".format(nbuckets))
     min_events = 5
     for v in vels:
         bucket = int(v/increment)
@@ -116,19 +112,47 @@ def main(argv):
         if nevents * 0.95 > reduced_nevents:
             break
 
-    print("Reducing to {} buckets ({} required per bucket)".format(i + 1, min_events))
+    print("# Reducing to {} buckets ({} required per bucket)".format(i + 1, min_events))
     del buckets[i+1:]
 
     nevents_new = sum(buckets)
-    print("Left with {} data points ({:.1f}% of data)".format(nevents_new, 100.0 * nevents_new/nevents))
+    print("# Left with {} data points ({:.1f}% of data)".format(nevents_new, 100.0 * nevents_new/nevents))
 
     speed = increment
     total_percent = 0
+    datapoints = []
+
     for b in buckets:
         percent = 100.0 * b/nevents_new
         total_percent += percent
-        print(".. {}mm/s: {:5} events, {:.1f}% {:.1f}% total".format(speed, b, percent, total_percent))
+        data = {
+            "speed" : speed,
+            "nevents" : b,
+            "percent" : percent,
+            "total-percent" : total_percent,
+        }
+        datapoints.append(data)
+
+        #print(".. {}mm/s: {:5} events, {:.1f}% {:.1f}% total".format(speed, b, percent, total_percent))
         speed += increment
+
+    return datapoints
+
+def print_one_dataset(data):
+    """
+    data is a list of dict objects with the various bits attached
+    """
+
+    print(tabulate(data, headers='keys'))
+
+def main(argv):
+    parser = argparse.ArgumentParser(description="Measure delta between event frames for each slot")
+    parser.add_argument("path", metavar="recording",
+                        nargs=1, help="Path to evemu recording")
+    args = parser.parse_args()
+
+    data = parse_recordings_file(args.path[0]);
+    print_one_dataset(data)
 
 if __name__ == "__main__":
     main(sys.argv)
