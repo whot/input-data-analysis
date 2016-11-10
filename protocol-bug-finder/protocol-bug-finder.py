@@ -201,7 +201,7 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
                 continue
 
             expected = 1 - e.value
-            self.assertEquals(state[index], expected)
+            self.assertEqual(state[index], expected)
             state[index] = e.value
 
 class TestTouchpad(TestAbsoluteDevice):
