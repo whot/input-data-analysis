@@ -34,9 +34,15 @@ class Slot:
     dt = 0
 
 def parse_recordings_file(path):
+    print("# processing {}".format(path))
     vels = []
 
     d = evemu.Device(path, create=False)
+
+    if not d.has_event("EV_ABS", "ABS_MT_SLOT"):
+        print("# single touch only, skipping")
+        return None
+
     nslots = d.get_abs_maximum("ABS_MT_SLOT") + 1
     slots = [Slot() for _ in range(0, nslots)]
     xres = 1.0 * d.get_abs_resolution("ABS_MT_POSITION_X")
@@ -210,7 +216,9 @@ def main(argv):
 
     data = []
     for path in args.path:
-        data.append(parse_recordings_file(path))
+        processed = parse_recordings_file(path)
+        if processed is not None:
+            data.append(processed)
 
     if len(data) == 1:
         print_one_dataset(data[0])
