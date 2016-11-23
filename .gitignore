@@ -1,0 +1,8 @@
+*.gnuplot
+*.dat
+*.evemu
+*.out
+*.pyc
+.*.swp
+.*.swo
+*.png
