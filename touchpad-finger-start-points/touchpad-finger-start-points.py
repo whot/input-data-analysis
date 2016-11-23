@@ -2,7 +2,6 @@
 # -*- coding: utf-8
 
 import sys
-from tpanalyze import *
 
 sys.path.append("..")
 from shared import *
