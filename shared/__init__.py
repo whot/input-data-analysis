@@ -22,6 +22,9 @@ class TouchPoint(object):
         x : (double)
         y : (double)
                 x/y coordinate in mm relative to the origin
+        pressure : int
+                pressure data per touch point. If None, this recording has
+                no per-slot pressure.
         mm : (double, double)
                 x/y coordinate in mm relative to the origin as tuple
         percent : (double, double)
@@ -29,7 +32,7 @@ class TouchPoint(object):
         time : int
                 timestamp in µs, relative to the sequence's start time
     """
-    def __init__(self, time = None, mm = None, percent = None):
+    def __init__(self, time = None, mm = None, percent = None, pressure = None):
         if mm is None:
             mm = (None, None)
         if percent is None:
@@ -38,6 +41,7 @@ class TouchPoint(object):
         self.time = time
         self.mm  = mm
         self.percent = percent
+        self.pressure = pressure
 
     @property
     def x(self):
@@ -66,6 +70,7 @@ class _TouchPointRecording(TouchPoint):
     def __init__(self):
         TouchPoint.__init__(self)
         self.dirty = False
+        self.pressure = None
 
     @property
     def x(self):
@@ -103,6 +108,15 @@ class _TouchPointRecording(TouchPoint):
         self.percent = (self.percent[0], y)
         self.dirty = True
 
+    @property
+    def press(self, pressure):
+        return self.pressure
+
+    @press.setter
+    def press(self, pressure):
+        self.pressure = pressure
+        self.dirty = True
+
     def clean_copy(self):
         assert(self.time != None)
         assert(self.mm[0] != None)
@@ -110,7 +124,7 @@ class _TouchPointRecording(TouchPoint):
         assert(self.percent[0] != None)
         assert(self.percent[1] != None)
 
-        ts = TouchPoint(self.time, self.mm, self.percent)
+        ts = TouchPoint(self.time, self.mm, self.percent, self.pressure)
         self.time = None
         self.dirty = False
 
@@ -323,6 +337,10 @@ class TouchSequence:
 
                     cp.y = self._mm_from_event(e, evemu_device)
                     cp.y_percent = self._percent_from_event(e, evemu_device)
+                    toffset = current_seqs[slot].times[0]
+                    cp.time = _tv2us(e.sec, e.usec) - toffset
+                elif e.matches("EV_ABS", "ABS_MT_PRESSURE"):
+                    cp.press = e.value
                     toffset = current_seqs[slot].times[0]
                     cp.time = _tv2us(e.sec, e.usec) - toffset
                 elif is_st and e.matches("EV_KEY", "BTN_TOUCH"):
