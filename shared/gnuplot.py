@@ -14,6 +14,7 @@ class GnuPlot(object):
         self.path_data = "{}.dat".format(path)
         self.kwargs = kwargs
         self.plots = []
+        self.splots = []
 
     def __enter__(self):
         f = open(self.path_cmd, "w", **self.kwargs)
@@ -29,16 +30,21 @@ class GnuPlot(object):
         return self.file_obj_cmd
 
     def __exit__(self, *args):
-        self.file_obj_cmd.write("plot file {}\n".format(", \n".join(self.plots)))
+        if len(self.plots) >= 1:
+            self.file_obj_cmd.write("plot file {}\n".format(", \n".join(self.plots)))
+        elif len(self.splots) >= 1:
+            self.file_obj_cmd.write("splot file {}\n".format(", \n".join(self.splots)))
         self.file_obj_cmd.write("pause -1\n")
         self.file_obj_cmd.close()
         self.file_obj_data.close()
 
-    def labels(self, xlabel, ylabel):
+    def labels(self, xlabel, ylabel, zlabel = None):
         if xlabel is not None:
             self.file_obj_cmd.write("set xlabel '{}'\n".format(xlabel))
         if ylabel is not None:
             self.file_obj_cmd.write("set ylabel '{}'\n".format(ylabel))
+        if zlabel is not None:
+            self.file_obj_cmd.write("set zlabel '{}'\n".format(zlabel))
 
     def ranges(self, xrange, yrange):
         if xrange is not None:
@@ -55,3 +61,8 @@ class GnuPlot(object):
     def plot(self, command):
         self.plots.append(command)
 
+    def splot(self, command):
+        self.splots.append(command)
+
+    def cmd(self, command):
+        self.file_obj_cmd.write("{}\n".format(command))
