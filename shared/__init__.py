@@ -21,7 +21,7 @@ class TouchPoint(object):
     -------
         x : (double)
         y : (double)
-                x/y coordinate in mm relatie to the origin
+                x/y coordinate in mm relative to the origin
         mm : (double, double)
                 x/y coordinate in mm relative to the origin as tuple
         percent : (double, double)
