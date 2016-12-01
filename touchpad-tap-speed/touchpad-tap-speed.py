@@ -21,6 +21,8 @@ class TouchpadTapSpeed(EventProcessor):
         parser.add_argument("--max-move", action="store", type=int,
                             default=6,
                             help="Ignore sequences moving more than X mm (default 6)")
+        parser.add_argument("--sort-by-mm", action="store_true", help="Sort by mm rather than time")
+
     def process_one_file(self, f, args):
         self.gnuplot.comment("processing {}".format(f))
         d = evemu.Device(f, create=False)
@@ -28,6 +30,7 @@ class TouchpadTapSpeed(EventProcessor):
         seqs = TouchSequence.create_from_recording(d)
         singles = [s for s in seqs if s.is_single and s.points ]
 
+        mm = [ 0 ] * (args.max_move + 1) * 10
         times = [ 0 ] * (args.max_time + 1)
 
         for s in singles:
@@ -43,24 +46,35 @@ class TouchpadTapSpeed(EventProcessor):
             if dist > args.max_move:
                 continue
 
+            mm[int(dist * 10)] += 1
+
             times[ms] += 1
 
-        return times
+        return times, mm
 
     def process(self, args):
-        self.gnuplot.labels("press-release time (ms)", "count")
-
         times = [ 0 ] * (args.max_time + 1)
+        mm = [ 0 ] * (args.max_move + 1) * 10
+
         for f in self.sourcefiles:
             try:
-                t = self.process_one_file(f, args)
+                t, m = self.process_one_file(f, args)
                 times = map(lambda x, y : x + y, times, t)
+                mm = map(lambda x, y : x + y, mm, m)
             except DeviceError as e:
                 print("Skipping {} with error: {}".format(f, e))
         
+        self.gnuplot.comment("# maximum distance {}mm".format(args.max_move))
         self.gnuplot.comment("# maximum time {}ms".format(args.max_time))
-        for ms, count in enumerate(times):
-            self.gnuplot.data("{} {}".format(ms, count))
+
+        if args.sort_by_mm:
+            self.gnuplot.labels("movement distance (in 0.1mm)", "count")
+            for mm, count in enumerate(mm):
+                self.gnuplot.data("{} {}".format(mm, count))
+        else:
+            self.gnuplot.labels("press-release time (ms)", "count")
+            for ms, count in enumerate(times):
+                self.gnuplot.data("{} {}".format(ms, count))
 
         self.gnuplot.plot("using 1:2 notitle")
 
