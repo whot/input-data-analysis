@@ -26,6 +26,20 @@ class TouchpadTapSpeed(EventProcessor):
                             help="Only print the start location for each tap")
 
     def process_one_file(self, f, args):
+        """
+        Processes one evemu recording and returns the calculated times,
+        distances and finger down locations for detected tap sequences.
+
+        Returns
+        -------
+         ( times, dist, locations )
+                where times[ms] is the count of events for sequences with a
+                duration of ms
+                where dist[d] is the count of events for sequences with a
+                movement distances of d (in 0.1 mm)
+                where locations[i] is the (x, y) tuple of finger down for
+                all detected sequences
+        """
         self.gnuplot.comment("processing {}".format(f))
         d = evemu.Device(f, create=False)
 
@@ -65,6 +79,9 @@ class TouchpadTapSpeed(EventProcessor):
         mm = [ 0 ] * (args.max_move + 1) * 10
         locations = []
 
+        gnuplot_dist = gnuplot.GnuPlot("{}-dist".format(self.__class__.__name__))
+        gnuplot_loc = gnuplot.GnuPlot("{}-locations".format(self.__class__.__name__))
+
         for f in self.sourcefiles:
             try:
                 t, m, l = self.process_one_file(f, args)
@@ -73,23 +90,28 @@ class TouchpadTapSpeed(EventProcessor):
                 locations += l
             except DeviceError as e:
                 print("Skipping {} with error: {}".format(f, e))
-        
+
         self.gnuplot.comment("# maximum distance {}mm".format(args.max_move))
         self.gnuplot.comment("# maximum time {}ms".format(args.max_time))
 
-        if args.sort_by_mm:
-            self.gnuplot.labels("movement distance (in 0.1mm)", "count")
+        with gnuplot_dist as g:
+            gnuplot_dist.comment("# maximum distance {}mm".format(args.max_move))
+            gnuplot_dist.comment("# maximum time {}ms".format(args.max_time))
+            gnuplot_dist.labels("movement distance (in 0.1mm)", "count")
             for mm, count in enumerate(mm):
-                self.gnuplot.data("{} {}".format(mm, count))
-        elif args.use_location:
-            self.gnuplot.labels("x", "y")
-            self.gnuplot.ranges("0:100", "0:100")
+                gnuplot_dist.data("{} {}".format(mm, count))
+            gnuplot_dist.plot("using 1:2 notitle")
+
+        with gnuplot_loc as g:
+            gnuplot_loc.labels("x", "y")
+            gnuplot_loc.ranges("0:100", "0:100")
             for x, y in locations:
-                self.gnuplot.data("{} {}".format(x * 100, y * 100))
-        else:
-            self.gnuplot.labels("press-release time (ms)", "count")
-            for ms, count in enumerate(times):
-                self.gnuplot.data("{} {}".format(ms, count))
+                gnuplot_loc.data("{} {}".format(x * 100, y * 100))
+            gnuplot_loc.plot("using 1:2 notitle")
+
+        self.gnuplot.labels("press-release time (ms)", "count")
+        for ms, count in enumerate(times):
+            self.gnuplot.data("{} {}".format(ms, count))
 
         self.gnuplot.plot("using 1:2 notitle")
 
