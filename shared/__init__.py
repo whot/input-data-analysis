@@ -182,11 +182,15 @@ class TouchSequence:
         linked : [ TouchSequence ]
                 A list of other TouchSequences that occured at the same time
                 as this one.
+
+        buttons : [ BTN_LEFT, BTN_RIGHT, ...] or None
+                A list of buttons down during this touch sequence (or None)
     """
 
     def __init__(self, slot, id, time):
         self.points = []
         self.linked = []
+        self.buttons = None
 
         # By default, we assume a touch sequence is a single finger
         # sequence.
@@ -359,6 +363,16 @@ class TouchSequence:
                 elif e.matches("EV_KEY", "BTN_TOOL_QUINTTAP"):
                     if e.value > 0:
                         max_fingers_this_frame = 5
+                elif e.matches("EV_KEY", "BTN_LEFT") or \
+                     e.matches("EV_KEY", "BTN_MIDDLE") or \
+                     e.matches("EV_KEY", "BTN_RIGHT"):
+                    seq = current_seqs[slot]
+                    if seq is not None:
+                        if seq.buttons is None:
+                            current_seqs[slot]
+                            seq.buttons = [ e.code ]
+                        elif not e.code in seq.buttons:
+                            seq.buttons.append(e.code)
                 elif e.matches("EV_SYN", "SYN_REPORT"):
                     if cp.dirty:
                         current_seqs[slot]._append(cp.clean_copy())
