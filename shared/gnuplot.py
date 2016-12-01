@@ -31,10 +31,10 @@ class GnuPlot(object):
 
     def __exit__(self, *args):
         if len(self.plots) >= 1:
-            self.file_obj_cmd.write("plot file {}\n".format(", \n".join(self.plots)))
+            self.file_obj_cmd.write("plot file {}\\\n".format(", \\\n     ".join(self.plots)))
         elif len(self.splots) >= 1:
-            self.file_obj_cmd.write("splot file {}\n".format(", \n".join(self.splots)))
-        self.file_obj_cmd.write("pause -1\n")
+            self.file_obj_cmd.write("splot file {}\n".format(", \\\n    ".join(self.splots)))
+        self.file_obj_cmd.write("\npause -1\n")
         self.file_obj_cmd.close()
         self.file_obj_data.close()
 
