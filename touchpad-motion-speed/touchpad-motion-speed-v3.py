@@ -21,6 +21,8 @@ class TouchpadMotionSpeed(EventProcessor):
                 "")
         parser.add_argument("--bucketsize", action="store", type=int,
                 default=10, help="Bucket size in mm/s")
+        parser.add_argument("--require-minimum", action="store", type=int,
+                default=10, help="Minimum number of events at top end of bucket list")
 
     def convert_to_buckets(self, bucketsize, vels):
         """
@@ -36,6 +38,13 @@ class TouchpadMotionSpeed(EventProcessor):
         for v in vels:
             b = int(v/bucketsize)
             buckets[b] = buckets.get(b, 0) + 1
+
+        return buckets
+
+    def reduce_buckets(self, buckets, min):
+        for key in sorted(buckets.keys(), reverse=True):
+            if buckets[key] < min:
+                del buckets[key]
 
         return buckets
 
@@ -68,6 +77,7 @@ class TouchpadMotionSpeed(EventProcessor):
                 print("Skipping {} with error: {}".format(f, e))
 
         buckets = self.convert_to_buckets(args.bucketsize, vels)
+        buckets = self.reduce_buckets(buckets, args.require_minimum)
         self.gnuplot.comment("# bucket-speed(mm/s) event-count")
         for b, c in buckets.iteritems():
             self.gnuplot.data("{} {}".format(b, c))
