@@ -28,7 +28,7 @@ class TouchpadTapSpeed(EventProcessor):
         d = evemu.Device(f, create=False)
 
         seqs = TouchSequence.create_from_recording(d)
-        singles = [s for s in seqs if s.is_single and s.points ]
+        singles = [s for s in seqs if s.is_single and s.points and s.buttons is None]
 
         mm = [ 0 ] * (args.max_move + 1) * 10
         times = [ 0 ] * (args.max_time + 1)
