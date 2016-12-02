@@ -5,6 +5,7 @@
 
 import math
 import sys
+import numpy
 
 sys.path.append("..")
 from shared import *
@@ -76,7 +77,7 @@ class TouchpadTapSpeed(EventProcessor):
 
     def process(self, args):
         times = [ 0 ] * (args.max_time + 1)
-        mm = [ 0 ] * (args.max_move + 1) * 10
+        mms = [ 0 ] * (args.max_move + 1) * 10
         locations = []
 
         gnuplot_dist = gnuplot.GnuPlot("{}-dist".format(self.__class__.__name__))
@@ -86,7 +87,7 @@ class TouchpadTapSpeed(EventProcessor):
             try:
                 t, m, l = self.process_one_file(f, args)
                 times = map(lambda x, y : x + y, times, t)
-                mm = map(lambda x, y : x + y, mm, m)
+                mms = map(lambda x, y : x + y, mms, m)
                 locations += l
             except DeviceError as e:
                 print("Skipping {} with error: {}".format(f, e))
@@ -98,9 +99,26 @@ class TouchpadTapSpeed(EventProcessor):
             gnuplot_dist.comment("# maximum distance {}mm".format(args.max_move))
             gnuplot_dist.comment("# maximum time {}ms".format(args.max_time))
             gnuplot_dist.labels("movement distance (in 0.1mm)", "count")
-            for mm, count in enumerate(mm):
+            for mm, count in enumerate(mms):
                 gnuplot_dist.data("{} {}".format(mm, count))
+
             gnuplot_dist.plot("using 1:2 notitle")
+
+            # mean of distances
+            flat = [ [idx] * count for idx, count in enumerate(mms) ]
+            flat = numpy.concatenate(flat)
+            mean = numpy.mean(flat)
+            gnuplot_dist.plot("{}, t title 'mean ({:.1f})'".format(mean, mean))
+
+            tmin, tmax = 0, max(mms)
+            # 50, 90, 95 percentiles
+            percentiles = numpy.percentile(flat, [50, 90, 95])
+            gnuplot_dist.cmd("set parametric")
+            gnuplot_dist.cmd("set trange [{}:{}]".format(tmin, tmax))
+            gnuplot_dist.plot("{}, t title '50% ({:3.1f})'".format(percentiles[0], percentiles[0]))
+            gnuplot_dist.plot("{}, t title '90% ({:3.1f})'".format(percentiles[1], percentiles[1]))
+            gnuplot_dist.plot("{}, t title '95% ({:3.1f})'".format(percentiles[2], percentiles[2]))
+
 
         with gnuplot_loc as g:
             gnuplot_loc.labels("x", "y")
@@ -114,6 +132,21 @@ class TouchpadTapSpeed(EventProcessor):
             self.gnuplot.data("{} {}".format(ms, count))
 
         self.gnuplot.plot("using 1:2 notitle")
+
+        # mean of times distances
+        flat = [ [idx] * count for idx, count in enumerate(times) ]
+        flat = numpy.concatenate(flat)
+        mean = numpy.mean(flat)
+        tmin, tmax = 0, max(times)
+        self.gnuplot.cmd("set parametric")
+        self.gnuplot.cmd("set trange [{}:{}]".format(tmin, tmax))
+        self.gnuplot.plot("{}, t title 'mean ({:.1f})'".format(mean, mean))
+
+        # 50, 90, 95 percentiles
+        percentiles = numpy.percentile(flat, [50, 90, 95])
+        self.gnuplot.plot("{}, t title '50% ({:3.1f})'".format(percentiles[0], percentiles[0]))
+        self.gnuplot.plot("{}, t title '90% ({:3.1f})'".format(percentiles[1], percentiles[1]))
+        self.gnuplot.plot("{}, t title '95% ({:3.1f})'".format(percentiles[2], percentiles[2]))
 
 def main(sysargs):
     TouchpadTapSpeed().run()
