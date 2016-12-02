@@ -9,6 +9,7 @@ import numpy
 
 sys.path.append("..")
 from shared import *
+from shared.gnuplot import *
 
 class TouchpadTapSpeed(EventProcessor):
     def add_args(self, parser):
@@ -41,7 +42,6 @@ class TouchpadTapSpeed(EventProcessor):
                 where locations[i] is the (x, y) tuple of finger down for
                 all detected sequences
         """
-        self.gnuplot.comment("processing {}".format(f))
         d = evemu.Device(f, create=False)
 
         seqs = TouchSequence.create_from_recording(d)
@@ -76,12 +76,12 @@ class TouchpadTapSpeed(EventProcessor):
         return times, mm, locations
 
     def process(self, args):
+
         times = [ 0 ] * (args.max_time + 1)
         mms = [ 0 ] * (args.max_move + 1) * 10
         locations = []
 
-        gnuplot_dist = gnuplot.GnuPlot("{}-dist".format(self.__class__.__name__))
-        gnuplot_loc = gnuplot.GnuPlot("{}-locations".format(self.__class__.__name__))
+        gnuplot_times, gnuplot_dist, gnuplot_loc = GnuPlot.from_object(self, suffixes = ['times', 'distance', 'location'])
 
         for f in self.sourcefiles:
             try:
@@ -91,9 +91,6 @@ class TouchpadTapSpeed(EventProcessor):
                 locations += l
             except DeviceError as e:
                 print("Skipping {} with error: {}".format(f, e))
-
-        self.gnuplot.comment("# maximum distance {}mm".format(args.max_move))
-        self.gnuplot.comment("# maximum time {}ms".format(args.max_time))
 
         with gnuplot_dist as g:
             gnuplot_dist.comment("# maximum distance {}mm".format(args.max_move))
@@ -127,26 +124,30 @@ class TouchpadTapSpeed(EventProcessor):
                 gnuplot_loc.data("{} {}".format(x * 100, y * 100))
             gnuplot_loc.plot("using 1:2 notitle")
 
-        self.gnuplot.labels("press-release time (ms)", "count")
-        for ms, count in enumerate(times):
-            self.gnuplot.data("{} {}".format(ms, count))
+        with gnuplot_times as g:
+            gnuplot_times.comment("# maximum distance {}mm".format(args.max_move))
+            gnuplot_times.comment("# maximum time {}ms".format(args.max_time))
 
-        self.gnuplot.plot("using 1:2 notitle")
+            gnuplot_times.labels("press-release time (ms)", "count")
+            for ms, count in enumerate(times):
+                gnuplot_times.data("{} {}".format(ms, count))
 
-        # mean of times distances
-        flat = [ [idx] * count for idx, count in enumerate(times) ]
-        flat = numpy.concatenate(flat)
-        mean = numpy.mean(flat)
-        tmin, tmax = 0, max(times)
-        self.gnuplot.cmd("set parametric")
-        self.gnuplot.cmd("set trange [{}:{}]".format(tmin, tmax))
-        self.gnuplot.plot("{}, t title 'mean ({:.1f})'".format(mean, mean))
+            gnuplot_times.plot("using 1:2 notitle")
 
-        # 50, 90, 95 percentiles
-        percentiles = numpy.percentile(flat, [50, 90, 95])
-        self.gnuplot.plot("{}, t title '50% ({:3.1f})'".format(percentiles[0], percentiles[0]))
-        self.gnuplot.plot("{}, t title '90% ({:3.1f})'".format(percentiles[1], percentiles[1]))
-        self.gnuplot.plot("{}, t title '95% ({:3.1f})'".format(percentiles[2], percentiles[2]))
+            # mean of times distances
+            flat = [ [idx] * count for idx, count in enumerate(times) ]
+            flat = numpy.concatenate(flat)
+            mean = numpy.mean(flat)
+            tmin, tmax = 0, max(times)
+            gnuplot_times.cmd("set parametric")
+            gnuplot_times.cmd("set trange [{}:{}]".format(tmin, tmax))
+            gnuplot_times.plot("{}, t title 'mean ({:.1f})'".format(mean, mean))
+
+            # 50, 90, 95 percentiles
+            percentiles = numpy.percentile(flat, [50, 90, 95])
+            gnuplot_times.plot("{}, t title '50% ({:3.1f})'".format(percentiles[0], percentiles[0]))
+            gnuplot_times.plot("{}, t title '90% ({:3.1f})'".format(percentiles[1], percentiles[1]))
+            gnuplot_times.plot("{}, t title '95% ({:3.1f})'".format(percentiles[2], percentiles[2]))
 
 def main(sysargs):
     TouchpadTapSpeed().run()
