@@ -13,8 +13,44 @@ from . import *
 
 class GnuPlot(object):
     @classmethod
-    def from_object(self, object):
-        return GnuPlot(object.__class__.__name__)
+    def from_object(self, obj, suffixes = None):
+        """
+        Creates a new GnuPLot object in a directory named after the object's
+        class name, with a timestamp. If suffixes are provided, multiple of
+        these objects are created in that directory with the matching
+        suffixes.
+
+        The object is sort-of like a file descriptor, best usage:
+
+                gnuplot = GnuPlot.from_object(self)
+                with gnuplot as g:
+                        g.do_something()
+
+        Parameters
+        ----------
+            obj: object
+                Any object, will be used for the directory and file name
+            suffixes : [ s1, s2, ... ]
+                A list of string with suffixes to use.
+        Return
+        ------
+            If no suffixes were given, a single GnuPlot object with the
+            output named after the object's class name.
+
+            If suffixes were given, a list of GnuPlot objects named after
+            the object's class name with the suffix, in the same order as
+            the suffixes.
+        """
+        clsname = obj.__class__.__name__
+        if suffixes is None:
+            return GnuPlot(clsname)
+        else:
+            gs = []
+            dirname = self._make_date_dir(clsname)
+            for s in suffixes:
+                name = "{}-{}".format(clsname, s)
+                gs.append(GnuPlot(name, dirname = dirname))
+            return gs
 
     @classmethod
     def _make_date_dir(self, path):
@@ -26,7 +62,11 @@ class GnuPlot(object):
     def __init__(self, path, **kwargs):
         # We take the time on init, not on enter so for long-running scripts
         # the start time rather than the finish time.
-        dirname = self._make_date_dir(path)
+        try:
+            dirname = kwargs["dirname"]
+            del kwargs["dirname"]
+        except KeyError:
+            dirname = self._make_date_dir(path)
 
         self.path_cmd = "{}/{}.gnuplot".format(dirname, path)
         self.path_data_filename = "{}.dat".format(path)
