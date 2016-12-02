@@ -71,6 +71,7 @@ class GnuPlot(object):
         self.path_cmd = "{}/{}.gnuplot".format(dirname, path)
         self.path_data_filename = "{}.dat".format(path)
         self.path_data = "{}/{}".format(dirname, self.path_data_filename)
+        self.dirname = dirname
         self.kwargs = kwargs
         self.plots = []
         self.splots = []
@@ -89,14 +90,21 @@ class GnuPlot(object):
         self.file_obj_data = f
         return self
 
-    def __exit__(self, *args):
-        if len(self.plots) >= 1:
-            self.file_obj_cmd.write("plot file {}\\\n".format(", \\\n     ".join(self.plots)))
-        elif len(self.splots) >= 1:
-            self.file_obj_cmd.write("splot file {}\n".format(", \\\n    ".join(self.splots)))
-        self.file_obj_cmd.write("\npause -1\n")
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_value is None:
+            if len(self.plots) >= 1:
+                self.file_obj_cmd.write("plot file {}\\\n".format(", \\\n     ".join(self.plots)))
+            elif len(self.splots) >= 1:
+                self.file_obj_cmd.write("splot file {}\n".format(", \\\n    ".join(self.splots)))
+            self.file_obj_cmd.write("\npause -1\n")
+
         self.file_obj_cmd.close()
         self.file_obj_data.close()
+
+        if exc_value is not None:
+            os.remove(self.path_cmd)
+            os.remove(self.path_data)
+            os.rmdir(self.dirname)
 
     def labels(self, xlabel, ylabel, zlabel = None):
         if xlabel is not None:
