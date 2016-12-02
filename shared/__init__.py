@@ -8,8 +8,6 @@ import itertools
 import sys
 import argparse
 
-from gnuplot import *
-
 def _tv2us(sec, usec):
     return sec * 1e6 + usec
 
@@ -415,9 +413,7 @@ class EventProcessor:
         pass
 
     def run(self):
-        self.gnuplot = GnuPlot.from_object(self)
-        with self.gnuplot as f:
-            self.process(self.args)
+        self.process(self.args)
 
 def main(argv):
     d = evemu.Device(argv[0], create=False)

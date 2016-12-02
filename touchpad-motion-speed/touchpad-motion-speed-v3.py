@@ -12,6 +12,7 @@ import sys
 
 sys.path.append("..")
 from shared import *
+from shared.gnuplot import *
 
 class TouchpadMotionSpeed(EventProcessor):
     def add_args(self, parser):
@@ -66,23 +67,25 @@ class TouchpadMotionSpeed(EventProcessor):
         return vels
 
     def process(self, args):
-        self.gnuplot.labels("speed(mm/s)", "count")
+        self.gnuplot = GnuPlot.from_object(self)
+        with self.gnuplot as g:
+            g.labels("speed(mm/s)", "count")
 
-        vels = []
+            vels = []
 
-        for f in self.sourcefiles:
-            try:
-                vels += self.process_one_file(f, args)
-            except DeviceError as e:
-                print("Skipping {} with error: {}".format(f, e))
+            for f in self.sourcefiles:
+                try:
+                    vels += self.process_one_file(f, args)
+                except DeviceError as e:
+                    print("Skipping {} with error: {}".format(f, e))
 
-        buckets = self.convert_to_buckets(args.bucketsize, vels)
-        buckets = self.reduce_buckets(buckets, args.require_minimum)
-        self.gnuplot.comment("# bucket-speed(mm/s) event-count")
-        for b, c in buckets.iteritems():
-            self.gnuplot.data("{} {}".format(b, c))
+            buckets = self.convert_to_buckets(args.bucketsize, vels)
+            buckets = self.reduce_buckets(buckets, args.require_minimum)
+            g.comment("# bucket-speed(mm/s) event-count")
+            for b, c in buckets.iteritems():
+                g.data("{} {}".format(b, c))
 
-        self.gnuplot.plot("using 1:2 notitle")
+            g.plot("using 1:2 notitle")
 
 def main(sysargs):
     TouchpadMotionSpeed().run()

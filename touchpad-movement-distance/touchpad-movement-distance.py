@@ -6,6 +6,7 @@ import sys
 
 sys.path.append("..")
 from shared import *
+from shared.gnuplot import *
 
 class TouchpadMovementDistance(EventProcessor):
 
@@ -39,22 +40,24 @@ class TouchpadMovementDistance(EventProcessor):
         return sums
 
     def process(self, args):
-        self.gnuplot.labels("touch", "distance (mm)")
+        self.gnuplot = GnuPlot.from_object(self)
+        with self.gnuplot as g:
+            g.labels("touch", "distance (mm)")
 
-        self.gnuplot.comment("# dist-mm xdist-mm ydist-mm")
+            g.comment("# dist-mm xdist-mm ydist-mm")
 
-        sums = []
+            sums = []
 
-        for f in self.sourcefiles:
-            try:
-                sums += self.process_one_file(f, args)
-            except DeviceError as e:
-                print("Skipping {} with error: {}".format(f, e))
+            for f in self.sourcefiles:
+                try:
+                    sums += self.process_one_file(f, args)
+                except DeviceError as e:
+                    print("Skipping {} with error: {}".format(f, e))
 
-        for sum_mm, sum_x, sum_y in sorted(sums, key=lambda s : s[0]):
-            self.gnuplot.data("{} {} {}".format(sum_mm, sum_x, sum_y))
+            for sum_mm, sum_x, sum_y in sorted(sums, key=lambda s : s[0]):
+                g.data("{} {} {}".format(sum_mm, sum_x, sum_y))
 
-        self.gnuplot.plot("using 0:1 notitle")
+            g.plot("using 0:1 notitle")
 
 def main(sysargs):
     TouchpadMovementDistance().run()

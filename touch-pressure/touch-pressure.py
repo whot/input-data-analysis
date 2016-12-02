@@ -5,6 +5,7 @@ import math
 import sys
 sys.path.append("..")
 from shared import *
+from shared.gnuplot import *
 
 class TouchPressure(EventProcessor):
     def process_one_file(self, f, args):
@@ -46,25 +47,26 @@ class TouchPressure(EventProcessor):
         return data
 
     def process(self, args):
-        self.gnuplot.labels("touch sequence number", "pressure value", "count")
+        self.gnuplot = GnuPlot.from_object(self)
+        with self.gnuplot as g:
+            g.labels("touch sequence number", "pressure value", "count")
+            g.comment("# dist-mm xdist-mm ydist-mm")
 
-        self.gnuplot.comment("# dist-mm xdist-mm ydist-mm")
+            sums = []
 
-        sums = []
+            if len(self.sourcefiles) > 1:
+                print("Only processing first source file");
 
-        if len(self.sourcefiles) > 1:
-            print("Only processing first source file");
+            f = self.sourcefiles[0]
+            data = self.process_one_file(f, args)
 
-        f = self.sourcefiles[0]
-        data = self.process_one_file(f, args)
+            g.comment("touch-sequence-number pressure-value event-count")
+            for sidx, sequence in enumerate(data):
+                for pidx, count in enumerate(sequence):
+                    g.data("{} {} {}".format(sidx, pidx, count))
 
-        self.gnuplot.comment("touch-sequence-number pressure-value event-count")
-        for sidx, sequence in enumerate(data):
-            for pidx, count in enumerate(sequence):
-                self.gnuplot.data("{} {} {}".format(sidx, pidx, count))
-
-        self.gnuplot.cmd("set hidden3d")
-        self.gnuplot.splot("using 1:2:3 notitle with lines")
+            g.cmd("set hidden3d")
+            g.splot("using 1:2:3 notitle with lines")
 
 def main(sysargs):
     TouchPressure().run()

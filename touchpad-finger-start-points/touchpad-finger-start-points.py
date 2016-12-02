@@ -5,6 +5,7 @@ import sys
 
 sys.path.append("..")
 from shared import *
+from shared.gnuplot import *
 
 class TouchpadFingerStartPoint(EventProcessor):
 
@@ -33,16 +34,18 @@ class TouchpadFingerStartPoint(EventProcessor):
             self.gnuplot.data("{} {}".format(x, y))
 
     def process(self, args):
-        self.gnuplot.labels("touchpad width", "touchpad height")
-        self.gnuplot.ranges("0.0:1.0", "0.0:1.0")
+        self.gnuplot = GnuPlot.from_object(self)
+        with self.gnuplot as g:
+            g.labels("touchpad width", "touchpad height")
+            g.ranges("0.0:1.0", "0.0:1.0")
 
-        for f in self.sourcefiles:
-            try:
-                self.process_one_file(f, args)
-            except DeviceError as e:
-                print("Skipping {} with error: {}".format(f, e))
+            for f in self.sourcefiles:
+                try:
+                    self.process_one_file(f, args)
+                except DeviceError as e:
+                    print("Skipping {} with error: {}".format(f, e))
 
-        self.gnuplot.plot("using 1:2 notitle")
+            g.plot("using 1:2 notitle")
 
 def main(sysargs):
     TouchpadFingerStartPoint().run()
