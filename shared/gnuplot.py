@@ -13,6 +13,10 @@ from . import *
 
 class GnuPlot(object):
     @classmethod
+    def from_object(self, object):
+        return GnuPlot(object.__class__.__name__)
+
+    @classmethod
     def _make_date_dir(self, path):
         now = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M')
         dirname = "{}-{}".format(now, path)

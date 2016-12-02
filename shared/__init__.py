@@ -415,7 +415,7 @@ class EventProcessor:
         pass
 
     def run(self):
-        self.gnuplot = GnuPlot(self.__class__.__name__)
+        self.gnuplot = GnuPlot.from_object(self)
         with self.gnuplot as f:
             self.process(self.args)
 
