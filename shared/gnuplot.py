@@ -27,7 +27,7 @@ class GnuPlot(object):
         f = open(self.path_data, "w", **self.kwargs)
         f.write("# for processing see {}\n".format(self.path_cmd))
         self.file_obj_data = f
-        return self.file_obj_cmd
+        return self
 
     def __exit__(self, *args):
         if len(self.plots) >= 1:
