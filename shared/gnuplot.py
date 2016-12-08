@@ -104,7 +104,11 @@ class GnuPlot(object):
         if exc_value is not None:
             os.remove(self.path_cmd)
             os.remove(self.path_data)
-            os.rmdir(self.dirname)
+            try:
+                os.rmdir(self.dirname)
+            except OSError:
+                # Directory may not be empty if there's other files
+                pass
 
     def labels(self, xlabel, ylabel, zlabel = None):
         if xlabel is not None:
