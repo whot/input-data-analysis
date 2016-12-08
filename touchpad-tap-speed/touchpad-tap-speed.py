@@ -11,6 +11,10 @@ sys.path.append("..")
 from shared import *
 from shared.gnuplot import *
 
+class TapSequence(object):
+    def __init__(self):
+        pass
+
 class TouchpadTapSpeed(EventProcessor):
     def add_args(self, parser):
         parser.description = (""
@@ -71,7 +75,12 @@ class TouchpadTapSpeed(EventProcessor):
 
             mm[int(dist * 10)] += 1
             times[ms] += 1
-            locations.append(first.percent)
+
+            ts = TapSequence()
+            ts.location = first.percent
+            ts.mm = dist
+            ts.ms = ms
+            locations.append(ts)
 
         return times, mm, locations
 
@@ -99,13 +108,13 @@ class TouchpadTapSpeed(EventProcessor):
         g.plot("{}, t title '90% ({:3.1f})'".format(percentiles[1], percentiles[1]))
         g.plot("{}, t title '95% ({:3.1f})'".format(percentiles[2], percentiles[2]))
 
-    def plot_locations(self, args, locations, g):
+    def plot_locations(self, args, sequences, g):
         g.labels("x", "y")
         g.ranges("0:100", "0:100")
-        for x, y in locations:
+        for ts in sequences:
+            x, y = ts.location
             g.data("{} {}".format(x * 100, y * 100))
         g.plot("using 1:2 notitle")
-
 
     def plot_times(self, args, times, g):
         g.comment("# maximum distance {}mm".format(args.max_move))
@@ -132,20 +141,61 @@ class TouchpadTapSpeed(EventProcessor):
         g.plot("{}, t title '90% ({:3.1f})'".format(percentiles[1], percentiles[1]))
         g.plot("{}, t title '95% ({:3.1f})'".format(percentiles[2], percentiles[2]))
 
+    def plot_dist_to_times(self, args, sequences, g):
+        g.labels("press-release time (ms)", "movement distance (in 0.1mm)")
+
+        distances = []
+        times = []
+
+        g.comment("# time(ms) dist(0.1mm)")
+        for s in sequences:
+            d = s.mm * 10
+            t = s.ms
+            distances.append(d)
+            times.append(t)
+            g.data("{} {}".format(t, d))
+
+        # 50, 90, 95 percentiles
+        pcs = zip(numpy.percentile(times, [50, 90, 95]),
+                 numpy.percentile(distances, [50, 90, 95]))
+
+        # The pedestrian approach. Count how many sequences fit into the
+        # (t, d) rectangle defined by the 50, 90, 95 percentiles
+        counts = [ 0 ] * len(pcs)
+        for s in sequences:
+            d = s.mm * 10
+            t = s.ms
+            for idx, pc in enumerate(pcs):
+                if t < pc[0] and d < pc[1]:
+                    counts[idx] += 1
+
+        objno = len(pcs)
+        color =  [ 0x20, 0x80, 0x40 ]
+        for (pc, count) in zip(pcs, counts):
+            count = 100 * count/len(sequences)
+            c = "#{:2x}{:2x}{:2x}".format(*color)
+            g.cmd("set object {} rect from 0,0 to {},{} fc rgb \"{}\"".format(objno, pc[0], pc[1], c))
+            g.cmd("set label {} \"{:.0f}%\" at {}, -2 ".format(objno, count, pc[0]))
+            objno -= 1
+            color = [ c + 0x20 for c in color ]
+
+        g.plot("using 1:2 notitle")
+
     def process(self, args):
 
         times = [ 0 ] * (args.max_time + 1)
         mms = [ 0 ] * (args.max_move + 1) * 10
-        locations = []
+        sequences = []
 
-        gnuplot_times, gnuplot_dist, gnuplot_loc = GnuPlot.from_object(self, suffixes = ['times', 'distance', 'location'])
+        gnuplot_times, gnuplot_dist, gnuplot_loc, gnuplot_t2d = \
+            GnuPlot.from_object(self, suffixes = ['times', 'distance', 'location', "time2dist"])
 
         for f in self.sourcefiles:
             try:
-                t, m, l = self.process_one_file(f, args)
+                t, m, s = self.process_one_file(f, args)
                 times = map(lambda x, y : x + y, times, t)
                 mms = map(lambda x, y : x + y, mms, m)
-                locations += l
+                sequences += s
             except DeviceError as e:
                 print("Skipping {} with error: {}".format(f, e))
 
@@ -153,10 +203,13 @@ class TouchpadTapSpeed(EventProcessor):
             self.plot_distance(args, mms, g)
 
         with gnuplot_loc as g:
-            self.plot_locations(args, locations, g)
+            self.plot_locations(args, sequences, g)
 
         with gnuplot_times as g:
             self.plot_times(args, times, g)
+
+        with gnuplot_t2d as g:
+            self.plot_dist_to_times(args, sequences, g)
 
 def main(sysargs):
     TouchpadTapSpeed().run()
