@@ -175,7 +175,7 @@ class TouchpadTapSpeed(EventProcessor):
             count = 100 * count/len(sequences)
             c = "#{:2x}{:2x}{:2x}".format(*color)
             g.cmd("set object {} rect from 0,0 to {},{} fc rgb \"{}\"".format(objno, pc[0], pc[1], c))
-            g.cmd("set label {} \"{:.0f}%\" at {}, -2 ".format(objno, count, pc[0]))
+            g.cmd("set label {} \"{:.0f}%\" at {}, -3 font \",7\" ".format(objno, count, pc[0]))
             objno -= 1
             color = [ c + 0x20 for c in color ]
 
