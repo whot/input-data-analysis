@@ -63,15 +63,30 @@ class TouchpadTapSpeed(EventProcessor):
             if ms > args.max_time:
                 continue
 
+            # ignore the left/right 10% of the touchpad, could be palms or
+            # edge scroll
+            if first.percent[0] > 0.90 or first.percent[0] < 0.10:
+                continue
+
+            # quick check to skip running through points
             delta = last - first
             dist = math.hypot(delta.x, delta.y)
             if dist > args.max_move:
                 continue
 
-            # ignore the left/right 10% of the touchpad, could be palms or
-            # edge scroll
-            if first.percent[0] > 0.90 or first.percent[0] < 0.10:
+            # check each point, because we may have a forward-back movement
+            max_move = 0
+            for t in s.points:
+                delta = t - first
+                dist = math.hypot(delta.x, delta.y)
+                max_move = max(max_move, dist)
+                if max_move > args.max_move:
+                    break
+
+            if max_move > args.max_move:
                 continue
+
+            dist = max_move
 
             mm[int(dist * 10)] += 1
             times[ms] += 1
