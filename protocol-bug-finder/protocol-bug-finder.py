@@ -129,10 +129,11 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
         smin = self.d.get_abs_minimum("ABS_MT_SLOT")
         smax = self.d.get_abs_maximum("ABS_MT_SLOT")
         self.assertEqual(smin, 0)
+        # At least two detection points
         self.assertGreaterEqual(smax, 1)
 
     def test_mt_has_btn_tool_footap_for_each_slot(self):
-        slots = self.d.get_abs_maximum("ABS_MT_SLOT")
+        slots = self.d.get_abs_maximum("ABS_MT_SLOT") + 1
         if slots >= 5:
             self.assertTrue(self.d.has_event("EV_KEY", "BTN_TOOL_QUINTTAP"))
         if slots >= 4:
@@ -151,7 +152,7 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
                 self.assertGreater(self.d.get_abs_resolution(a), 0)
 
     def test_mt_events_btn_tool_set_for_each_slot(self):
-        nslots = self.d.get_abs_maximum("ABS_MT_SLOT")
+        nslots = self.d.get_abs_maximum("ABS_MT_SLOT") + 1
         slots = [ False ] * nslots
         tools = [ False ] * 5
 
