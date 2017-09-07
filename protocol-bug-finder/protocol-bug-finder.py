@@ -178,7 +178,7 @@ class TestAbsoluteMultitouchDevice(TestAbsoluteDevice):
                 nactive_slots = slots.count(True)
                 try:
                     nactive_tools = tools.index(True) + 1
-                    self.assertLessEqual(nactive_tools, nactive_tools)
+                    self.assertLessEqual(nactive_slots, nactive_tools)
                 except ValueError:
                     pass
 
