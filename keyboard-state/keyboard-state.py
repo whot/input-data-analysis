@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import evemu
+import os
 import sys
 
 UP = 0
@@ -51,7 +52,8 @@ def main(argv):
     char = ['^', '+', '|', ' ']
 
     down = {}
-    last_time = None
+    last_down = {}
+    bounce = False
     for e in d.events():
         if e.matches('EV_SYN', 'SYN_REPORT'):
             line = []
@@ -59,11 +61,11 @@ def main(argv):
             line.append(' {} '.format(len(down)))
 
             time = e.sec * 1000000 + e.usec
-            if last_time != None and time - last_time < 3000:  # 3ms
+            if bounce:
                 line.append('*')
+                bounce = False
             else:
                 line.append(' ')
-            last_time = time
 
             line.append('|')
             for i in range(2, max_offset):
@@ -92,6 +94,13 @@ def main(argv):
         key = evemu.event_get_name(e.type, e.code)
         key = key[4:].lower()  # remove KEY_ prefix
         down[key] = e.value
+        
+        if e.value:
+            time = e.sec * 1000000 + e.usec
+            if (key in last_down) and (time - last_down[key] < 70000):  # 70 ms
+                bounce = True
+            else:
+                last_down[key] = time
 
 
 if __name__ == "__main__":
